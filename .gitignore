@@ -1,3 +1,5 @@
 Constants.py
 bot-venv/*
 dbs/*
+__pycache__
+old-code

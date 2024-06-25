@@ -21,13 +21,14 @@ import discord.ext
 from typing import List
 from typing import Optional
 from typing import Union
+import random
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-guid = discord.Object(id=1247589243895939295)
+guid = discord.Object(id=Constants.guild_id)
 
 @client.event
 async def on_message(message):
@@ -40,16 +41,80 @@ async def yip(interaction: discord.Interaction):
     await interaction.response.send_message('Yap!')
 
 
+##############Gambling
+def GetBal(uuid):
+    try:
+        with open("./dbs/users.json","r") as fi:
+            jsonData = json.loads(str(json.load(fi)))
+            gems = jsonData[uuid]["Gems"]#open json to get gems
+            fi.close()
+            return gems
+    except:
+        raise ValueError('User Not Set Up')
+
+@tree.command(name="bal",description="get your gem balance",guild=guid)
+async def bal(interaction: discord.Interaction):
+    try:
+        with open("./dbs/users.json","r") as fi:
+            jsonData = json.loads(str(json.load(fi)))
+            gems = GetBal(str(int(interaction.user.id)))#open json to get gems
+            await interaction.response.send_message("Gems: "+str(gems))
+        fi.close()
+    except:
+        await interaction.response.send_message("use /user Setup")
+
+@tree.command(name="flip",description="flip a coin for X amout of gems and earn 1.5X!!",guild=guid)#flip a coin
+async def flip(interaction: discord.Interaction,ammount:str|None):
+    bet = 0
+    try:
+        gems = GetBal(str(int(interaction.user.id)))#open json to get gems
+    except:
+        await interaction.response.send_message("use /user Setup")
+    try:
+        if ammount == None and gems > 0 and bet <= gems:
+            bet = 1
+            flip = random.randint(0,1)
+            await interaction.response.send_message("Bet: "+str(bet))
+            if flip == 1:
+                reward = int(bet*0.5)
+                #####SET JSON DATA GEMS bal+int(bet*0.5)
+                strReward=str(reward)
+                await interaction.response.send_message("You Earned!",strReward, "AGAIN!!!")
+            else:
+                reward = -1*(bet + int(bet*0.5))
+                #####SET JSON DATA GEMS + -1*(bet + int(bet*0.5))
+                strReward=str(reward)
+                await interaction.response.send_message(f"You lost!",strReward,"But try again, All gamblers quit before they win")
+        elif gems > 0 and bet <= gems:
+            bet = float(int(ammount))
+            flip = random.randint(0,1)
+            await interaction.response.send_message("Bet: "+str(bet))
+            if flip == 1:
+                reward = int(bet*0.5)
+                #####SET JSON DATA GEMS bal+int(bet*0.5)
+                strReward=str(reward)
+                await interaction.response.send_message("You Earned!",strReward, "AGAIN!!!")
+            else:
+                reward = -1*(bet + int(bet*0.5))
+                #####SET JSON DATA GEMS + -1*(bet + int(bet*0.5))
+                strReward=str(reward)
+                await interaction.response.send_message(f"You lost!",strReward,"But try again, All gamblers quit before they win")
+    except:
+        await interaction.response.send_message('Enter A Valid Number')
+
+
+
 
 #######################
-@tree.command(name='user',description='user setup and information',guild=guid)
+@tree.command(name='user',description='user setup and information',guild=guid)#user setup
 async def user(interaction: discord.Interaction, command:str, input: str | None):
     if command == 'Setup' or command == 'setup':
         with open("./dbs/users.json","w") as fi:
             y = {
                     str(int(interaction.user.id)):{
                     "name":str(interaction.user.name),
-                    "pronouns":input
+                    "pronouns":input,
+                    "Gems":500
                     }
                 }
             json.dump(json.dumps(y),fi) 
