@@ -12,6 +12,7 @@
 print("Loading...")
 import discord
 import Constants
+import internalFunction as iF
 from discord import app_commands
 import discord.ext.commands
 from discord.ext import commands
@@ -42,22 +43,11 @@ async def yip(interaction: discord.Interaction):
 
 
 ##############Gambling
-def GetBal(uuid):
-    try:
-        with open("./dbs/users.json","r") as fi:
-            jsonData = json.loads(str(json.load(fi)))
-            gems = jsonData[uuid]["Gems"]#open json to get gems
-            fi.close()
-            return gems
-    except:
-        raise ValueError('User Not Set Up')
-
 @tree.command(name="bal",description="get your gem balance",guild=guid)
 async def bal(interaction: discord.Interaction):
     try:
         with open("./dbs/users.json","r") as fi:
-            jsonData = json.loads(str(json.load(fi)))
-            gems = GetBal(str(int(interaction.user.id)))#open json to get gems
+            gems = iF.GetBal(str(int(interaction.user.id)))#open json to get gems
             await interaction.response.send_message("Gems: "+str(gems))
         fi.close()
     except:
@@ -65,42 +55,45 @@ async def bal(interaction: discord.Interaction):
 
 @tree.command(name="flip",description="flip a coin for X amout of gems and earn 1.5X!!",guild=guid)#flip a coin
 async def flip(interaction: discord.Interaction,ammount:str|None):
-    bet = 0
+    await interaction.response.defer()
     try:
-        gems = GetBal(str(int(interaction.user.id)))#open json to get gems
+        bet = float(int(ammount))
     except:
-        await interaction.response.send_message("use /user Setup")
+        bet = 0
+    try:
+        gems = iF.GetBal(str(int(interaction.user.id)))#open json to get gems
+    except:
+        await interaction.followup.send("use /user Setup")
     try:
         if ammount == None and gems > 0 and bet <= gems:
             bet = 1
             flip = random.randint(0,1)
-            await interaction.response.send_message("Bet: "+str(bet))
+            await interaction.followup.send("Bet: "+str(bet))
             if flip == 1:
                 reward = int(bet*0.5)
-                #####SET JSON DATA GEMS bal+int(bet*0.5)
-                strReward=str(reward)
-                await interaction.response.send_message("You Earned!",strReward, "AGAIN!!!")
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+int(bet+reward))
+                strReward=str(reward+1)
+                await interaction.followup.send("You Earned! "+strReward+ " AGAIN!!!")
             else:
-                reward = -1*(bet + int(bet*0.5))
-                #####SET JSON DATA GEMS + -1*(bet + int(bet*0.5))
-                strReward=str(reward)
-                await interaction.response.send_message(f"You lost!",strReward,"But try again, All gamblers quit before they win")
+                reward = -(int(bet))
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+reward)
+                strReward=str(abs(reward))
+                await interaction.followup.send(f"You lost! "+strReward+" But try again, All gamblers quit before they win")
         elif gems > 0 and bet <= gems:
-            bet = float(int(ammount))
             flip = random.randint(0,1)
-            await interaction.response.send_message("Bet: "+str(bet))
+            await interaction.followup.send("Bet: "+str(bet))
             if flip == 1:
                 reward = int(bet*0.5)
-                #####SET JSON DATA GEMS bal+int(bet*0.5)
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+int(bet+reward))
                 strReward=str(reward)
-                await interaction.response.send_message("You Earned!",strReward, "AGAIN!!!")
+                await interaction.followup.send("You Earned! "+strReward+ " AGAIN!!!")
             else:
-                reward = -1*(bet + int(bet*0.5))
-                #####SET JSON DATA GEMS + -1*(bet + int(bet*0.5))
-                strReward=str(reward)
-                await interaction.response.send_message(f"You lost!",strReward,"But try again, All gamblers quit before they win")
+                reward = -(int(bet))
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+reward)
+                strReward=str(abs(reward))
+                await interaction.followup.send(f"You lost! "+strReward+" But try again, All gamblers quit before they win")
     except:
-        await interaction.response.send_message('Enter A Valid Number')
+        await interaction.followup.send('Enter A Valid Number')
 
 
 
@@ -109,18 +102,34 @@ async def flip(interaction: discord.Interaction,ammount:str|None):
 @tree.command(name='user',description='user setup and information',guild=guid)#user setup
 async def user(interaction: discord.Interaction, command:str, input: str | None):
     if command == 'Setup' or command == 'setup':
-        with open("./dbs/users.json","w") as fi:
-            y = {
-                    str(int(interaction.user.id)):{
-                    "name":str(interaction.user.name),
-                    "pronouns":input,
-                    "Gems":500
-                    }
-                }
-            json.dump(json.dumps(y),fi) 
+        with open("./dbs/users.json", 'r') as fi:
+            data = json.load(fi)
+            if str(int(interaction.user.id)) in data: #if existing reset gems
+                if input == None:
+                    data[str(int(interaction.user.id))] = {"name":str(interaction.user.name),"pronouns":data[str(int(interaction.user.id))]["pronouns"],"Gems": 500}
+                else:
+                    data[str(int(interaction.user.id))] = {"name":str(interaction.user.name),"pronouns":input,"Gems": 500}
+            else:
+                if input == None:
+                    data[str(int(interaction.user.id))] = {"name":str(interaction.user.name),"pronouns":"","Gems": 500}
+                else:
+                    data[str(int(interaction.user.id))] = {"name":str(interaction.user.name),"pronouns":input,"Gems": 500}
             print("name:",str(interaction.user.name),"pron:",input)
         fi.close()
+        with open("./dbs/users.json", 'w') as fi:
+            json.dump(data, fi, indent=2)
+        fi.close()
         await interaction.response.send_message('setup Complete')
+@user.autocomplete('command')
+async def input_auto(
+    interaction:discord.Interaction,
+    current: str,
+) -> List[app_commands.Choice[str]]:
+    commands = ['setup']
+    return [
+        app_commands.Choice(name=input, value=input)
+        for input in commands if current.lower() in input.lower()
+    ]
 @user.autocomplete('input')
 async def input_auto(
     interaction:discord.Interaction,
@@ -136,14 +145,15 @@ async def input_auto(
 async def cafe(interaction: discord.Interaction, question: str|None):
     url = 'http://localhost:11434/api/generate'
     with open("./dbs/users.json","r") as fi:
-        jsonData = json.loads(str(json.load(fi)))
+        jsonData = json.load(fi)
         prons=jsonData[str(int(interaction.user.id))]["pronouns"]
-    await interaction.response.send_message('`due to low processing power this may take some time`')
+    await interaction.response.defer()
+    await interaction.followup.send('`due to low processing power this may take some time`')
     await client.change_presence(status=discord.Status.online,activity=discord.CustomActivity('⚙️...Processing...⚙️'))
     try:
         jsonreq = {
         "model":"llama3",
-        "stream":False,
+        "stream":True,
         "prompt":f"your name is Cafe-Bot a small kobold assistant that wants to help as much as possible. Always \
                      start and end your responce with 'Yip!' while keeping your responces as short as possible, \
                      also here is a set of rules to follow if you want to format your fonts, \
@@ -156,12 +166,12 @@ async def cafe(interaction: discord.Interaction, question: str|None):
         resp = requests.post(url,json=jsonreq)
         resp = json.loads(str(resp.text))
         print(str(resp["response"]))
-        await interaction.response.send_message(str(resp["response"]))
+        await interaction.followup.send(str(resp["response"]))
         fi.close()
     except:
         jsonreq = {
         "model":"llama3",
-        "stream":False,
+        "stream":True,
         "prompt":f"your name is Cafe-Bot a small kobold assistant that wants to help as much as possible. Always \
                      start and end your responce with 'Yip!' while keeping your responces as short as possible, \
                      also here is a set of rules to follow if you want to format your fonts, \
@@ -173,8 +183,8 @@ async def cafe(interaction: discord.Interaction, question: str|None):
         }
         resp = requests.post(url,json=jsonreq)
         resp = json.loads(str(resp.text))
-        print(str(resp["response"]))
-        await interaction.response.send_message(str(resp["response"]))
+        print(str(resp))
+        await interaction.followup.send(str(resp["response"]))
         fi.close()
     await client.change_presence(status=discord.Status.online,activity=discord.CustomActivity('Watching You and Vibin'))
 #####################
