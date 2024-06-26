@@ -53,7 +53,7 @@ async def bal(interaction: discord.Interaction):
     except:
         await interaction.response.send_message("use /user Setup")
 
-@tree.command(name="flip",description="flip a coin for X amout of gems and earn 1.5X!!",guild=guid)#flip a coin
+@tree.command(name="flip",description="flip a coin for X amout of gems and earn 1.25X!!",guild=guid)#flip a coin
 async def flip(interaction: discord.Interaction,ammount:str|None):
     await interaction.response.defer()
     try:
@@ -71,7 +71,7 @@ async def flip(interaction: discord.Interaction,ammount:str|None):
             await interaction.followup.send("Bet: "+str(bet))
             if flip == 1:
                 reward = int(bet*0.5)
-                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+int(bet+reward))
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+1)
                 strReward=str(reward+1)
                 await interaction.followup.send("You Earned! "+strReward+ " AGAIN!!!")
             else:
@@ -84,7 +84,7 @@ async def flip(interaction: discord.Interaction,ammount:str|None):
             await interaction.followup.send("Bet: "+str(bet))
             if flip == 1:
                 reward = int(bet*0.5)
-                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+int(bet+reward))
+                iF.setGems(str(int(interaction.user.id)),iF.GetBal(str(int(interaction.user.id)))+reward)
                 strReward=str(reward)
                 await interaction.followup.send("You Earned! "+strReward+ " AGAIN!!!")
             else:
@@ -94,9 +94,6 @@ async def flip(interaction: discord.Interaction,ammount:str|None):
                 await interaction.followup.send(f"You lost! "+strReward+" But try again, All gamblers quit before they win")
     except:
         await interaction.followup.send('Enter A Valid Number')
-
-
-
 
 #######################
 @tree.command(name='user',description='user setup and information',guild=guid)#user setup
@@ -188,6 +185,14 @@ async def cafe(interaction: discord.Interaction, question: str|None):
         fi.close()
     await client.change_presence(status=discord.Status.online,activity=discord.CustomActivity('Watching You and Vibin'))
 #####################
+######IMAGES######
+@tree.command(name='e6',description='Query the funny website at your own risk (Split queries by a plus sign no spaces)',nsfw=True,guild=guid)
+async def e6(interaction: discord.Interaction,query: str | None):
+    await interaction.response.send_message('|| '+iF.queryE6(query)+' ||')
+@tree.command(name='safe6',description='Query the funny website at your own risk (Split queries by a plus sign no spaces) now with a safty',nsfw=False,guild=guid)
+async def Safe6(interaction: discord.Interaction,query: str | None):
+    await interaction.response.send_message(iF.queryE6(query+'+rating:s'))
+
 ########Moderation##########
 
 
