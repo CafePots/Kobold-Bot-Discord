@@ -5,3 +5,5 @@
 install
 https://ollama.com/download
 and follow its setup
+
+some other functionality aswell
